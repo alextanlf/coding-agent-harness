@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: coding-agent-harness
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /
+    envVars:
+      - key: LOG_LEVEL
+        value: INFO
+      - key: PYTHONUNBUFFERED
+        value: "1"
+    disk:
+      name: agent-data
+      mountPath: /app/.agent
+      sizeGB: 1
