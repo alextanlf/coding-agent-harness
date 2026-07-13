@@ -1,0 +1,42 @@
+<!-- web/static/index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coding Agent Harness</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div id="app">
+        <header>
+            <h1>Coding Agent Harness</h1>
+            <button id="settings-btn">Settings</button>
+        </header>
+        <div id="credential-banner" class="banner hidden">
+            No API key configured. <a href="#" id="configure-link">Configure now</a>
+        </div>
+        <div id="chat-container">
+            <div id="action-log"></div>
+        </div>
+        <div id="input-area">
+            <input type="text" id="task-input" placeholder="Describe a coding task..." />
+            <button id="submit-btn">Send</button>
+        </div>
+    </div>
+    <div id="settings-modal" class="modal hidden">
+        <div class="modal-content">
+            <h2>Settings</h2>
+            <div id="cred-status"></div>
+            <input type="password" id="master-password" placeholder="Master password" />
+            <input type="password" id="api-key" placeholder="OpenAI API key" />
+            <div class="modal-buttons">
+                <button id="save-cred-btn">Save</button>
+                <button id="clear-cred-btn">Clear</button>
+                <button id="close-modal-btn">Close</button>
+            </div>
+        </div>
+    </div>
+    <script src="/static/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  unit-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: pip install -e ".[dev]"
+      - name: Run tests
+        run: pytest tests/ -v --tb=short
+
+  docker-build:
+    needs: unit-test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build Docker image
+        run: docker build -t coding-agent-harness .
+      - name: Verify image runs
+        run: |
+          docker run -d -p 8001:8000 --name test-harness coding-agent-harness
+          sleep 3
+          curl -s http://localhost:8001/ | grep -q "Coding Agent Harness"
+          docker stop test-harness
+          docker rm test-harness
