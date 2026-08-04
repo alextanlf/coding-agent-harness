@@ -82,9 +82,9 @@
         <div class="modal-content">
             <h2>Settings</h2>
             <div id="cred-status"></div>
-            <p class="hint">Master Password encrypts your API key at rest. Don't forget it — it can't be recovered.</p>
-            <input type="password" id="master-password" placeholder="Master password (any password you choose)" />
+            <p class="hint">Your API key is encrypted and stored on the server. It survives restarts.</p>
             <input type="password" id="api-key" placeholder="OpenAI API key (sk-...)" />
+            <p class="hint">Get one at <a href="https://platform.openai.com/api-keys" target="_blank">platform.openai.com/api-keys</a></p>
             <div class="modal-buttons">
                 <button id="save-cred-btn">Save</button>
                 <button id="clear-cred-btn">Clear</button>
