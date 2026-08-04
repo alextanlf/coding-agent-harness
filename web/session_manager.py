@@ -133,6 +133,14 @@ class SessionManager:
             await emitter.emit("error", {"message": str(e)})
 
     def _create_llm(self, config):
+        import os
+
+        # Priority 1: OPENAI_API_KEY env var (best for cloud deployment)
+        env_key = os.environ.get("OPENAI_API_KEY")
+        if env_key:
+            return OpenAIClient(api_key=env_key, model=config.model)
+
+        # Priority 2: Encrypted credential store (requires master password)
         try:
             status = self._cred_store.status()
             if not status.get("configured"):

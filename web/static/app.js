@@ -61,20 +61,28 @@ function connectWebSocket(sessionId) {
 function handleWebSocketMessage(msg) {
     switch (msg.type) {
         case 'action':
-            addLogEntry('action', `${msg.data.action_type}: ${msg.data.path || msg.data.command || ''}`);
+            addLogEntry('action', `${msg.action_type || msg.data?.action_type}: ${msg.path || msg.command || msg.data?.path || msg.data?.command || ''}`);
             break;
         case 'blocked':
-            addLogEntry('blocked', `Blocked: ${msg.data.reason}`);
+            addLogEntry('blocked', `Blocked: ${msg.reason || msg.data?.reason}`);
             break;
         case 'hitl_request':
-            showHITLCard(msg.data);
+            showHITLCard(msg.data || msg);
             break;
         case 'test_result':
-            addLogEntry('test', `Tests ${msg.data.passed ? 'passed' : 'failed'}`);
+            addLogEntry('test', `Tests ${msg.passed ?? msg.data?.passed ? 'passed' : 'failed'}`);
             break;
         case 'complete':
-            addLogEntry('complete', `Task ${msg.data.success ? 'completed' : 'failed'} (${msg.data.iterations} iterations)`);
+            addLogEntry('complete', `Task ${msg.success ?? msg.data?.success ? 'completed' : 'failed'} (${msg.iterations ?? msg.data?.iterations ?? 0} iterations)${msg.reason ? ' — ' + msg.reason : ''}`);
             break;
+        case 'error':
+            addLogEntry('blocked', `Error: ${msg.message || msg.data?.message || 'Unknown error'}`);
+            break;
+        case 'parse_error':
+            addLogEntry('blocked', `Parse error: ${msg.error || msg.data?.error}`);
+            break;
+        default:
+            addLogEntry('info', JSON.stringify(msg));
     }
 }
 

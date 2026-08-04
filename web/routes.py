@@ -112,6 +112,17 @@ def create_router(cred_store: CredentialStore) -> APIRouter:
         for event in session.get("events", []):
             await websocket.send_json(event)
 
+        if session["status"] in ("completed", "failed"):
+            result = session.get("result", {})
+            await websocket.send_json({
+                "type": "complete",
+                "success": result.get("success", False),
+                "iterations": result.get("iterations", 0),
+                "reason": result.get("reason", ""),
+            })
+            await websocket.close()
+            return
+
         try:
             while session["status"] in ("pending", "running"):
                 await asyncio.sleep(0.5)
@@ -125,6 +136,13 @@ def create_router(cred_store: CredentialStore) -> APIRouter:
                             "command": req.action.command,
                             "reason": req.reason,
                         })
+            result = session.get("result", {})
+            await websocket.send_json({
+                "type": "complete",
+                "success": result.get("success", False),
+                "iterations": result.get("iterations", 0),
+                "reason": result.get("reason", ""),
+            })
         except WebSocketDisconnect:
             session["websocket"] = None
         except Exception as e:
