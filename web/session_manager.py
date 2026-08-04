@@ -2,12 +2,12 @@
 import asyncio
 import logging
 import os
+import secrets
 from uuid import uuid4
 from pathlib import Path
 from harness.credentials.store import CredentialStore, CredentialError
 from harness.core.loop import run_loop, EventEmitter
 from harness.llm.openai_client import OpenAIClient
-from harness.llm.mock_client import MockLLMClient
 from harness.tools.base import ToolRegistry
 from harness.tools.file_tools import WriteFileTool, ReadFileTool, ListFilesTool
 from harness.tools.shell_tool import RunShellTool
@@ -29,6 +29,29 @@ class SessionManager:
         self._workspace_root.mkdir(parents=True, exist_ok=True)
         self._cred_store = CredentialStore(store_path=credential_path)
         self._sessions: dict[str, dict] = {}
+
+        # Auto-generate and persist a server-side secret for encrypting API keys.
+        # This frees the user from managing a master password — the server
+        # handles encryption/decryption transparently. The secret survives
+        # restarts because it's stored on the persistent disk.
+        self._secret_path = self._workspace_root.parent / "server_secret"
+        self._server_secret = self._load_or_create_secret()
+
+    def _load_or_create_secret(self) -> str:
+        """Load the server-side secret from disk, or generate a new one."""
+        try:
+            if self._secret_path.exists():
+                return self._secret_path.read_text().strip()
+        except Exception:
+            pass
+        secret = secrets.token_urlsafe(32)
+        try:
+            self._secret_path.parent.mkdir(parents=True, exist_ok=True)
+            self._secret_path.write_text(secret)
+            logger.info("Generated new server-side secret for credential encryption")
+        except Exception as e:
+            logger.warning(f"Could not persist server secret: {e}")
+        return secret
 
     async def create_session(self, task: str, websocket=None) -> str:
         session_id = str(uuid4())
@@ -94,7 +117,7 @@ class SessionManager:
         if llm is None:
             session["status"] = "failed"
             session["result"] = {"success": False, "iterations": 0, "reason": "No API key configured"}
-            await self._emit(session_id, "error", {"message": "No API key configured. Go to Settings to add your OpenAI key."})
+            await self._emit(session_id, "error", {"message": "No API key configured. Click Settings to add your OpenAI key."})
             return
 
         ws = session.get("websocket")
@@ -134,18 +157,16 @@ class SessionManager:
             await emitter.emit("error", {"message": str(e)})
 
     def _create_llm(self, config):
-        # Try credential store first
+        # Try credential store with server-side secret (survives restarts)
         try:
             status = self._cred_store.status()
             if status.get("configured"):
-                master_password = getattr(self, '_master_password', None)
-                if master_password:
-                    try:
-                        api_key = self._cred_store.load(master_password)
-                        logger.info("Loaded API key from credential store")
-                        return OpenAIClient(api_key=api_key, model=config.model)
-                    except CredentialError as e:
-                        logger.warning(f"Credential store load failed: {e}")
+                try:
+                    api_key = self._cred_store.load(self._server_secret)
+                    logger.info("Loaded API key from credential store (server-side secret)")
+                    return OpenAIClient(api_key=api_key, model=config.model)
+                except CredentialError as e:
+                    logger.warning(f"Credential store load failed: {e}")
         except Exception as e:
             logger.warning(f"Credential store check failed: {e}")
 
@@ -155,11 +176,18 @@ class SessionManager:
             logger.info("Using OPENAI_API_KEY from environment variable")
             return OpenAIClient(api_key=env_key, model=config.model)
 
-        logger.warning("No API key available (neither credential store nor env var)")
+        logger.warning("No API key available")
         return None
 
-    def set_master_password(self, password: str):
-        self._master_password = password
+    def store_api_key(self, api_key: str):
+        """Store API key encrypted with the server-side secret. No master password needed."""
+        self._cred_store.store(api_key, self._server_secret)
+        logger.info("API key stored with server-side secret")
+
+    def clear_api_key(self):
+        """Clear stored API key."""
+        self._cred_store.clear()
+        logger.info("API key cleared")
 
     async def _emit(self, session_id: str, event_type: str, data: dict):
         session = self._sessions.get(session_id)
