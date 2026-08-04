@@ -182,26 +182,42 @@ async function resolveHITL(requestId, decision) {
 }
 
 async function saveCredentials() {
-    const apiKey = document.getElementById('api-key').value;
+    const apiKey = document.getElementById('api-key').value.trim();
+    const statusEl = document.getElementById('cred-status');
+    const saveBtn = document.getElementById('save-cred-btn');
+
     if (!apiKey) {
-        document.getElementById('cred-status').textContent = '⚠️ API key is required.';
+        statusEl.textContent = '⚠️ API key is required.';
         return;
     }
-    document.getElementById('save-cred-btn').disabled = true;
-    document.getElementById('save-cred-btn').textContent = 'Saving...';
+
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Saving...';
+    statusEl.textContent = 'Saving...';
+
     try {
-        await fetch('/api/credentials', {
+        const resp = await fetch('/api/credentials', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ api_key: apiKey }),
         });
+
+        if (!resp.ok) {
+            const errText = await resp.text();
+            statusEl.textContent = `❌ Server error (${resp.status}): ${errText.substring(0, 100)}`;
+            return;
+        }
+
+        const data = await resp.json();
         document.getElementById('api-key').value = '';
+        statusEl.textContent = '✅ API key saved! You can close this and start a task.';
         await checkCredStatus();
     } catch (e) {
-        document.getElementById('cred-status').textContent = `❌ Error: ${e.message}`;
+        statusEl.textContent = `❌ Network error: ${e.message}`;
+    } finally {
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Save';
     }
-    document.getElementById('save-cred-btn').disabled = false;
-    document.getElementById('save-cred-btn').textContent = 'Save';
 }
 
 async function clearCredentials() {
