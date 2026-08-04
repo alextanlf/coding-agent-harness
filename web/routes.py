@@ -11,8 +11,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-class CredentialRequest(BaseModel):
-    master_password: str
+class ApiKeyRequest(BaseModel):
     api_key: str
 
 
@@ -35,19 +34,20 @@ def create_router(cred_store: CredentialStore) -> APIRouter:
         return HTMLResponse("<h1>Coding Agent Harness</h1>")
 
     @router.get("/api/credentials")
-    async def credential_status():
-        return cred_store.status()
+    async def credential_status(request: Request):
+        sm: SessionManager = request.app.state.session_manager
+        return sm._cred_store.status()
 
     @router.post("/api/credentials")
-    async def store_credentials(req: CredentialRequest, request: Request):
-        cred_store.store(req.api_key, req.master_password)
+    async def store_credentials(req: ApiKeyRequest, request: Request):
         sm: SessionManager = request.app.state.session_manager
-        sm.set_master_password(req.master_password)
+        sm.store_api_key(req.api_key)
         return {"status": "stored"}
 
     @router.delete("/api/credentials")
-    async def clear_credentials():
-        cred_store.clear()
+    async def clear_credentials(request: Request):
+        sm: SessionManager = request.app.state.session_manager
+        sm.clear_api_key()
         return {"status": "cleared"}
 
     @router.post("/api/session")
