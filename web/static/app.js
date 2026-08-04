@@ -182,10 +182,9 @@ async function resolveHITL(requestId, decision) {
 }
 
 async function saveCredentials() {
-    const masterPassword = document.getElementById('master-password').value;
     const apiKey = document.getElementById('api-key').value;
-    if (!masterPassword || !apiKey) {
-        document.getElementById('cred-status').textContent = '⚠️ Both fields are required.';
+    if (!apiKey) {
+        document.getElementById('cred-status').textContent = '⚠️ API key is required.';
         return;
     }
     document.getElementById('save-cred-btn').disabled = true;
@@ -194,9 +193,8 @@ async function saveCredentials() {
         await fetch('/api/credentials', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ master_password: masterPassword, api_key: apiKey }),
+            body: JSON.stringify({ api_key: apiKey }),
         });
-        document.getElementById('master-password').value = '';
         document.getElementById('api-key').value = '';
         await checkCredStatus();
     } catch (e) {
