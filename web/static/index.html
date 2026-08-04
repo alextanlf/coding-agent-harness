@@ -1,6 +1,5 @@
-<!-- web/static/index.html -->
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -17,10 +16,65 @@
             No API key configured. <a href="#" id="configure-link">Configure now</a>
         </div>
         <div id="chat-container">
-            <div id="action-log"></div>
+            <div id="welcome-screen" class="welcome">
+                <h2>What is this?</h2>
+                <p>An AI coding assistant that can read/write files, run commands, and run tests —
+                   all under safety guardrails that block dangerous actions and ask for your approval.</p>
+
+                <h3>Quick Start (3 steps)</h3>
+                <ol>
+                    <li>Click <b>Settings</b> (top right) → enter your OpenAI API key</li>
+                    <li>Type a task below (e.g. "write hello.py that prints hello world")</li>
+                    <li>Watch the agent work — approve any actions it asks permission for</li>
+                </ol>
+
+                <h3>Example Tasks</h3>
+                <div class="examples">
+                    <div class="example-card" onclick="document.getElementById('task-input').value='Write a Python function that calculates fibonacci numbers, save it to fib.py'; document.getElementById('task-input').focus();">
+                        Write a fibonacci function → fib.py
+                    </div>
+                    <div class="example-card" onclick="document.getElementById('task-input').value='Create a file called hello.py with print(hello world), then run it'; document.getElementById('task-input').focus();">
+                        Create and run hello.py
+                    </div>
+                    <div class="example-card" onclick="document.getElementById('task-input').value='List all files in the current directory'; document.getElementById('task-input').focus();">
+                        List files in directory
+                    </div>
+                    <div class="example-card" onclick="document.getElementById('task-input').value='Write a calculator class with add, subtract, multiply, divide methods, save to calculator.py, and write tests'; document.getElementById('task-input').focus();">
+                        Write a calculator with tests
+                    </div>
+                </div>
+
+                <h3>How it works</h3>
+                <div class="how-it-works">
+                    <div class="step">
+                        <span class="step-num">1</span>
+                        <span>You type a task in natural language</span>
+                    </div>
+                    <div class="step">
+                        <span class="step-num">2</span>
+                        <span>AI decides what files to read/write, what commands to run</span>
+                    </div>
+                    <div class="step">
+                        <span class="step-num">3</span>
+                        <span>Safety guardrails block dangerous commands (rm -rf, sudo, etc.)</span>
+                    </div>
+                    <div class="step">
+                        <span class="step-num">4</span>
+                        <span>Risky actions (git push, pip install) require your approval</span>
+                    </div>
+                    <div class="step">
+                        <span class="step-num">5</span>
+                        <span>Agent runs tests and self-corrects from failures</span>
+                    </div>
+                </div>
+
+                <h3>Need an OpenAI API key?</h3>
+                <p>Get one at <a href="https://platform.openai.com/api-keys" target="_blank">platform.openai.com/api-keys</a></p>
+            </div>
+            <div id="action-log" class="hidden"></div>
         </div>
         <div id="input-area">
-            <input type="text" id="task-input" placeholder="Describe a coding task..." />
+            <input type="text" id="task-input" placeholder="Describe a coding task... (e.g. write a hello.py file)" />
             <button id="submit-btn">Send</button>
         </div>
     </div>
@@ -28,8 +82,9 @@
         <div class="modal-content">
             <h2>Settings</h2>
             <div id="cred-status"></div>
-            <input type="password" id="master-password" placeholder="Master password" />
-            <input type="password" id="api-key" placeholder="OpenAI API key" />
+            <p class="hint">Master Password encrypts your API key at rest. Don't forget it — it can't be recovered.</p>
+            <input type="password" id="master-password" placeholder="Master password (any password you choose)" />
+            <input type="password" id="api-key" placeholder="OpenAI API key (sk-...)" />
             <div class="modal-buttons">
                 <button id="save-cred-btn">Save</button>
                 <button id="clear-cred-btn">Clear</button>
