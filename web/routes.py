@@ -118,14 +118,14 @@ def create_router(cred_store: CredentialStore) -> APIRouter:
                 "type": "complete",
                 "success": result.get("success", False),
                 "iterations": result.get("iterations", 0),
-                "reason": result.get("reason", ""),
+                "reason": result.get("reason", session["status"]),
             })
             await websocket.close()
             return
 
         try:
             while session["status"] in ("pending", "running"):
-                await asyncio.sleep(0.5)
+                await asyncio.sleep(0.3)
                 pending = session.get("hitl")
                 if pending:
                     for req in pending.get_pending_requests():
@@ -136,12 +136,13 @@ def create_router(cred_store: CredentialStore) -> APIRouter:
                             "command": req.action.command,
                             "reason": req.reason,
                         })
+
             result = session.get("result", {})
             await websocket.send_json({
                 "type": "complete",
                 "success": result.get("success", False),
                 "iterations": result.get("iterations", 0),
-                "reason": result.get("reason", ""),
+                "reason": result.get("reason", session["status"]),
             })
         except WebSocketDisconnect:
             session["websocket"] = None
