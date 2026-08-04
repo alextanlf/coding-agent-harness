@@ -1,6 +1,7 @@
 # web/session_manager.py
 import asyncio
 import logging
+import os
 from uuid import uuid4
 from pathlib import Path
 from harness.credentials.store import CredentialStore, CredentialError
@@ -133,31 +134,29 @@ class SessionManager:
             await emitter.emit("error", {"message": str(e)})
 
     def _create_llm(self, config):
-        import os
-
-        # Priority 1: OPENAI_API_KEY env var (best for cloud deployment)
-        env_key = os.environ.get("OPENAI_API_KEY")
-        if env_key:
-            return OpenAIClient(api_key=env_key, model=config.model)
-
-        # Priority 2: Encrypted credential store (requires master password)
+        # Try credential store first
         try:
             status = self._cred_store.status()
-            if not status.get("configured"):
-                return None
-        except Exception:
-            return None
+            if status.get("configured"):
+                master_password = getattr(self, '_master_password', None)
+                if master_password:
+                    try:
+                        api_key = self._cred_store.load(master_password)
+                        logger.info("Loaded API key from credential store")
+                        return OpenAIClient(api_key=api_key, model=config.model)
+                    except CredentialError as e:
+                        logger.warning(f"Credential store load failed: {e}")
+        except Exception as e:
+            logger.warning(f"Credential store check failed: {e}")
 
-        master_password = getattr(self, '_master_password', None)
-        if master_password is None:
-            return None
+        # Fallback: OPENAI_API_KEY environment variable
+        env_key = os.environ.get("OPENAI_API_KEY")
+        if env_key:
+            logger.info("Using OPENAI_API_KEY from environment variable")
+            return OpenAIClient(api_key=env_key, model=config.model)
 
-        try:
-            api_key = self._cred_store.load(master_password)
-            return OpenAIClient(api_key=api_key, model=config.model)
-        except CredentialError as e:
-            logger.error(f"Failed to load credentials: {e}")
-            return None
+        logger.warning("No API key available (neither credential store nor env var)")
+        return None
 
     def set_master_password(self, password: str):
         self._master_password = password
